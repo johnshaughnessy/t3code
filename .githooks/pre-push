@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+readonly repository_root=$(git rev-parse --show-toplevel)
+readonly audit_script="$repository_root/.agents/skills/maintain-patch-stack/scripts/audit-public-stack.sh"
+
+while read -r local_ref local_oid remote_ref remote_oid; do
+  if [[ $remote_ref != 'refs/heads/patch-stack' ]]; then
+    continue
+  fi
+  if [[ $local_oid =~ ^0+$ ]]; then
+    printf '%s\n' 'Refusing to delete the shared public patch-stack branch.' >&2
+    exit 1
+  fi
+  "$audit_script" upstream/main "$local_oid"
+done
