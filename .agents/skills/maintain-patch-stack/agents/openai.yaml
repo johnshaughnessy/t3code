@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain T3 Patch Stack"
+  short_description: "Audit and rebase the public T3 patch stack"
+  default_prompt: "Use $maintain-patch-stack to update the shared T3 patch stack from canonical upstream and audit it before publishing."
