@@ -26,6 +26,14 @@ const CARRIED_SELECTION: ModelSelection = {
   instanceId: ProviderInstanceId.make("codex"),
   model: "carried-model",
 };
+const GLOBAL_DEFAULT_SELECTION: ModelSelection = {
+  instanceId: ProviderInstanceId.make("codex"),
+  model: "global-default",
+};
+const OTHER_ACCOUNT_SELECTION: ModelSelection = {
+  instanceId: ProviderInstanceId.make("codex_personal"),
+  model: "carried-model",
+};
 
 function createContext(overrides: Partial<ChatThreadActionContext> = {}): ChatThreadActionContext {
   return {
@@ -58,6 +66,7 @@ describe("chatThreadActions", () => {
     expect(
       resolveNewThreadModelSelectionOverride({
         projectDefaultSelection: null,
+        globalDefaultSelection: GLOBAL_DEFAULT_SELECTION,
         carrySelection: CARRIED_SELECTION,
         carrySourceDraftId: "draft-a",
         destinationDraftId: "draft-a",
@@ -69,6 +78,7 @@ describe("chatThreadActions", () => {
     expect(
       resolveNewThreadModelSelectionOverride({
         projectDefaultSelection: null,
+        globalDefaultSelection: GLOBAL_DEFAULT_SELECTION,
         carrySelection: CARRIED_SELECTION,
         carrySourceDraftId: "draft-a",
         destinationDraftId: "draft-b",
@@ -76,10 +86,35 @@ describe("chatThreadActions", () => {
     ).toEqual(CARRIED_SELECTION);
   });
 
+  it("uses the global account instead of carrying a different account", () => {
+    expect(
+      resolveNewThreadModelSelectionOverride({
+        projectDefaultSelection: null,
+        globalDefaultSelection: GLOBAL_DEFAULT_SELECTION,
+        carrySelection: OTHER_ACCOUNT_SELECTION,
+        carrySourceDraftId: "draft-a",
+        destinationDraftId: "draft-b",
+      }),
+    ).toEqual(GLOBAL_DEFAULT_SELECTION);
+  });
+
+  it("uses the global default when there is no carried selection", () => {
+    expect(
+      resolveNewThreadModelSelectionOverride({
+        projectDefaultSelection: null,
+        globalDefaultSelection: GLOBAL_DEFAULT_SELECTION,
+        carrySelection: null,
+        carrySourceDraftId: null,
+        destinationDraftId: "draft-b",
+      }),
+    ).toEqual(GLOBAL_DEFAULT_SELECTION);
+  });
+
   it("keeps the project default above any carried selection", () => {
     expect(
       resolveNewThreadModelSelectionOverride({
         projectDefaultSelection: PROJECT_DEFAULT_SELECTION,
+        globalDefaultSelection: GLOBAL_DEFAULT_SELECTION,
         carrySelection: CARRIED_SELECTION,
         carrySourceDraftId: "draft-a",
         destinationDraftId: "draft-b",
