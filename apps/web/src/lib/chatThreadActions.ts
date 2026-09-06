@@ -46,14 +46,23 @@ export function resolveNewDraftStartFromOrigin(input: {
 
 export function resolveNewThreadModelSelectionOverride(input: {
   readonly projectDefaultSelection: ModelSelection | null;
+  readonly globalDefaultSelection: ModelSelection;
   readonly carrySelection: ModelSelection | null;
   readonly carrySourceDraftId: string | null;
   readonly destinationDraftId: string;
 }): ModelSelection | null {
-  return (
-    input.projectDefaultSelection ??
-    (input.carrySourceDraftId === input.destinationDraftId ? null : input.carrySelection)
-  );
+  if (input.projectDefaultSelection) {
+    return input.projectDefaultSelection;
+  }
+  if (
+    input.carrySelection &&
+    input.carrySelection.instanceId === input.globalDefaultSelection.instanceId
+  ) {
+    // Carry model/options within the configured account, but never carry an
+    // old account across a global default change.
+    return input.carrySourceDraftId === input.destinationDraftId ? null : input.carrySelection;
+  }
+  return input.globalDefaultSelection;
 }
 
 export function hasExplicitComposerModelSelection(
