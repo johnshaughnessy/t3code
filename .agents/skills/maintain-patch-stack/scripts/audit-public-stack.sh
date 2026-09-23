@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-readonly base_ref=${1:-upstream/main}
+readonly base_ref=${1:-origin/main}
 readonly tip_ref=${2:-HEAD}
 
 for command in git grep mktemp; do
