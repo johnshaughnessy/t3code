@@ -6,7 +6,7 @@ description: Author, audit, rebase, and publish this fork's small `[PATCH]` comm
 # Maintain Patch Stack
 
 Keep `patch-stack` as a linear sequence of self-contained `[PATCH]` commits on
-top of `upstream/main`.
+top of the selected official stable release mirrored by `origin/main`.
 
 - `upstream` is the canonical `pingdotgg/t3code` repository.
 - `origin` is the public `johnshaughnessy/t3code` fork.
@@ -82,9 +82,9 @@ git status --short --branch
 git remote -v
 git fetch --prune upstream
 git fetch --prune origin
-git merge-base patch-stack upstream/main
-git log --reverse --format='%H %s' upstream/main..patch-stack
-git cherry upstream/main patch-stack
+git merge-base patch-stack origin/main
+git log --reverse --format='%H %s' origin/main..patch-stack
+git cherry origin/main patch-stack
 ```
 
 Require a clean worktree and verify the remote identities above. Record the
@@ -114,7 +114,7 @@ Before rebasing:
 
 ### Rebase and verify
 
-Run `git rebase upstream/main`. Resolve each conflict in the patch currently
+Run `git rebase <selected-stable-release>`. Resolve each conflict in the patch currently
 being replayed, preserving its documented intent while adopting upstream
 structure and naming. Keep resolutions narrow.
 
@@ -131,8 +131,8 @@ structure and naming. Keep resolutions narrow.
 Finish by reviewing the rewrite:
 
 ```bash
-git range-diff OLD_BASE..OLD_TIP upstream/main..HEAD
-git log --reverse --format='%H%n%B%n---' upstream/main..HEAD
+git range-diff OLD_BASE..OLD_TIP origin/main..HEAD
+git log --reverse --format='%H%n%B%n---' origin/main..HEAD
 git status --short --branch
 .agents/skills/maintain-patch-stack/scripts/audit-public-stack.sh
 ```
@@ -145,7 +145,7 @@ retains durable context, and leaves a clean worktree.
 Fast-forward the fork mirror without rewriting it:
 
 ```bash
-git push origin upstream/main:main
+git push origin <selected-stable-release>:main
 ```
 
 If that is not a fast-forward, stop and investigate the unexpected fork-main
