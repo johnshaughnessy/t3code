@@ -20,7 +20,7 @@ const APP_BUNDLE_ID = isDevelopment
   ? `com.t3tools.t3code.dev.${devBundleIdSuffix || "local"}`
   : "com.t3tools.t3code";
 const APP_PROTOCOL_SCHEMES = isDevelopment ? ["t3code-dev"] : ["t3code"];
-const LAUNCHER_VERSION = 19;
+const LAUNCHER_VERSION = 20;
 const developmentMacIconPngPath = NodePath.join(
   repoRoot,
   "assets",
@@ -139,6 +139,15 @@ export function makeDevelopmentLauncherScript({
     "#!/bin/sh",
     `if [ -f ${shellSingleQuote(environmentFilePath)} ]; then . ${shellSingleQuote(environmentFilePath)}; fi`,
     `exec ${shellSingleQuote(electronBinaryPath)} --t3code-dev-root=${shellSingleQuote(desktopRoot)} ${shellSingleQuote(mainEntryPath)} "$@"`,
+    "",
+  ].join("\n");
+}
+
+export function makeProductionLauncherScript({ electronBinaryPath, mainEntryPath, desktopRoot }) {
+  return [
+    "#!/bin/sh",
+    `cd ${shellSingleQuote(desktopRoot)} || exit 1`,
+    `exec ${shellSingleQuote(electronBinaryPath)} ${shellSingleQuote(mainEntryPath)} "$@"`,
     "",
   ].join("\n");
 }
@@ -347,9 +356,7 @@ function buildMacLauncher(electronBinaryPath) {
   const targetAppBundlePath = NodePath.join(runtimeDir, `${APP_DISPLAY_NAME}.app`);
   const developmentPaths = resolveMacLauncherPaths(targetAppBundlePath);
   const runtimeElectronBinaryPath = developmentPaths.runtimeElectronBinaryPath;
-  const launcherBinaryPath = isDevelopment
-    ? developmentPaths.launcherBinaryPath
-    : runtimeElectronBinaryPath;
+  const launcherBinaryPath = developmentPaths.launcherBinaryPath;
   const iconPath = ensureMacIconIcns(runtimeDir);
   const metadataPath = NodePath.join(runtimeDir, "metadata.json");
 
@@ -396,7 +403,7 @@ function buildMacLauncher(electronBinaryPath) {
   patchMainBundleInfoPlist(
     targetAppBundlePath,
     iconPath,
-    isDevelopment ? developmentPaths.launcherExecutableName : "Electron",
+    developmentPaths.launcherExecutableName,
   );
   patchHelperBundleInfoPlists(targetAppBundlePath);
   if (isDevelopment) {
@@ -407,6 +414,16 @@ function buildMacLauncher(electronBinaryPath) {
     // in development mode instead of making app.isPackaged report true.
     writeDevelopmentEnvironmentScript();
     writeDevelopmentLauncherScript(launcherBinaryPath, runtimeElectronBinaryPath);
+  } else {
+    NodeFS.writeFileSync(
+      launcherBinaryPath,
+      makeProductionLauncherScript({
+        electronBinaryPath: runtimeElectronBinaryPath,
+        mainEntryPath: NodePath.join(desktopDir, "dist-electron", "main.cjs"),
+        desktopRoot: desktopDir,
+      }),
+      { mode: 0o755 },
+    );
   }
   signMacLauncherBundle(targetAppBundlePath);
   NodeFS.writeFileSync(metadataPath, `${JSON.stringify(expectedMetadata, null, 2)}\n`);

@@ -7,6 +7,7 @@ import { assert, describe, it } from "vite-plus/test";
 import {
   makeDevelopmentEnvironmentScript,
   makeDevelopmentLauncherScript,
+  makeProductionLauncherScript,
   resolveElectronBinaryPath,
   resolveMacBundleInfoPlistStrings,
   resolveMacCodeSignArguments,
@@ -16,6 +17,19 @@ import {
 } from "./electron-launcher.mjs";
 
 describe("electron development launcher", () => {
+  it("opens the production app from Finder or the Dock with its entrypoint", () => {
+    const script = makeProductionLauncherScript({
+      electronBinaryPath: "/repo/T3 Code (Alpha).app/Contents/MacOS/Electron",
+      mainEntryPath: "/repo/apps/desktop/dist-electron/main.cjs",
+      desktopRoot: "/repo/apps/desktop",
+    });
+
+    assert.include(script, "cd '/repo/apps/desktop' || exit 1");
+    assert.include(
+      script,
+      "exec '/repo/T3 Code (Alpha).app/Contents/MacOS/Electron' '/repo/apps/desktop/dist-electron/main.cjs' \"$@\"",
+    );
+  });
   it("uses captured values only as fallbacks for a live runner environment", () => {
     const environmentScript = makeDevelopmentEnvironmentScript({
       VITE_DEV_SERVER_URL: "http://127.0.0.1:8526",
