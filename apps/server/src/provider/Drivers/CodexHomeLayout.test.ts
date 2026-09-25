@@ -188,7 +188,12 @@ it.layer(NodeServices.layer)("CodexHomeLayout", (it) => {
           yield* fileSystem.makeDirectory(path.join(sharedHome, "memories"));
           yield* fileSystem.makeDirectory(path.join(sharedHome, "tmp"));
           yield* writeTextFile(path.join(sharedHome, "config.toml"), 'model = "gpt-5-codex"\n');
+          yield* writeTextFile(path.join(sharedHome, ".codex-global-state.json"), '{"shared":true}\n');
+          yield* writeTextFile(path.join(sharedHome, "transcription-history.jsonl"), "shared\n");
           yield* writeTextFile(path.join(shadowHome, "auth.json"), '{"shadow":true}\n');
+          yield* writeTextFile(path.join(shadowHome, ".codex-global-state.json"), '{"shadow":true}\n');
+          yield* writeTextFile(path.join(shadowHome, ".codex-global-state.json.bak"), "backup\n");
+          yield* writeTextFile(path.join(shadowHome, "transcription-history.jsonl"), "shadow\n");
           yield* fileSystem.makeDirectory(path.join(shadowHome, "log"), { recursive: true });
           yield* fileSystem.makeDirectory(path.join(shadowHome, "memories"), { recursive: true });
           yield* fileSystem.makeDirectory(path.join(shadowHome, "tmp"), { recursive: true });
@@ -217,6 +222,15 @@ it.layer(NodeServices.layer)("CodexHomeLayout", (it) => {
           expect(logLinkResult._tag).toBe("Failure");
           expect(memoriesLinkResult._tag).toBe("Failure");
           expect(tmpLinkResult._tag).toBe("Failure");
+          expect(
+            yield* fileSystem.readFileString(path.join(shadowHome, ".codex-global-state.json")),
+          ).toBe('{"shadow":true}\n');
+          expect(
+            yield* fileSystem.readFileString(path.join(shadowHome, ".codex-global-state.json.bak")),
+          ).toBe("backup\n");
+          expect(
+            yield* fileSystem.readFileString(path.join(shadowHome, "transcription-history.jsonl")),
+          ).toBe("shadow\n");
         }),
     );
 
