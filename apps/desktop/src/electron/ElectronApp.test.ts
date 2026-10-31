@@ -11,6 +11,7 @@ const {
   getSystemLocaleMock,
   getVersionMock,
   onMock,
+  requestSingleInstanceLockMock,
   quitMock,
   relaunchMock,
   removeListenerMock,
@@ -32,6 +33,7 @@ const {
   getSystemLocaleMock: vi.fn(() => "en-GB"),
   getVersionMock: vi.fn(() => "1.2.3"),
   onMock: vi.fn(),
+  requestSingleInstanceLockMock: vi.fn(() => true),
   quitMock: vi.fn(),
   relaunchMock: vi.fn(),
   removeListenerMock: vi.fn(),
@@ -65,6 +67,7 @@ vi.mock("electron", () => ({
     isPackaged: true,
     name: "T3 Code",
     on: onMock,
+    requestSingleInstanceLock: requestSingleInstanceLockMock,
     quit: quitMock,
     relaunch: relaunchMock,
     removeListener: removeListenerMock,
@@ -95,6 +98,15 @@ describe("ElectronApp", () => {
     removeSwitchMock.mockClear();
     setPathMock.mockClear();
   });
+
+  it.effect("reports whether Electron acquired the profile lock", () =>
+    Effect.gen(function* () {
+      const app = yield* ElectronApp.ElectronApp;
+      requestSingleInstanceLockMock.mockReturnValueOnce(true).mockReturnValueOnce(false);
+      assert.isTrue(yield* app.requestSingleInstanceLock);
+      assert.isFalse(yield* app.requestSingleInstanceLock);
+    }).pipe(Effect.provide(ElectronApp.layer)),
+  );
 
   it.effect("reads app metadata through the service", () =>
     Effect.gen(function* () {

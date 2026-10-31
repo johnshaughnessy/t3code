@@ -99,10 +99,15 @@ export const make = Effect.gen(function* () {
   const electronApp = yield* ElectronApp.ElectronApp;
   const shell = yield* ElectronShell.ElectronShell;
 
-  // The SDK bridge acquires Electron's profile-scoped single-instance lock.
+  // Clerk acquires the profile lock on Windows/Linux, but skips it on macOS.
   // Must not yield: the bridge registers a scheme Electron rejects once ready.
   const userDataPath = yield* DesktopUserData.resolveUserDataPath(environment);
   yield* electronApp.setPath("userData", userDataPath);
+  if (environment.platform === "darwin" && !(yield* electronApp.requestSingleInstanceLock)) {
+    // Exit before constructing the application runtime or starting a backend.
+    yield* electronApp.exit(0);
+    return yield* Effect.interrupt;
+  }
 
   const bridge = yield* Effect.acquireRelease(
     Effect.try({

@@ -57,6 +57,7 @@ const layerDesktopClerk = (
     openSystemSettings: () => Effect.succeed(false),
     copyText: () => Effect.void,
   },
+  isPrimaryInstance = true,
 ) => {
   const environment = DesktopEnvironment.DesktopEnvironment.of({
     stateDir: "/tmp/t3-state",
@@ -66,6 +67,14 @@ const layerDesktopClerk = (
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
   const electronApp = {
+    requestSingleInstanceLock: Effect.sync(() => {
+      events.push("requestSingleInstanceLock");
+      return isPrimaryInstance;
+    }),
+    exit: (code: number) =>
+      Effect.sync(() => {
+        events.push(`exit:${code}`);
+      }),
     setPath: (name: string, value: string) =>
       Effect.sync(() => {
         events.push(`setPath:${name}:${value}`);
@@ -91,6 +100,25 @@ describe("DesktopClerk", () => {
     storageMock.mockReset();
   });
 
+  it.effect("stops a duplicate macOS desktop before creating the bridge or backend", () => {
+    const events: string[] = [];
+    createClerkBridgeMock.mockReturnValue({ cleanup: vi.fn(), isPrimaryInstance: true });
+    return Effect.gen(function* () {
+      const result = yield* Effect.exit(
+        Effect.scoped(
+          Layer.build(layerDesktopClerk(false, events, "darwin", undefined, undefined, false)),
+        ),
+      );
+      assert.equal(result._tag, "Failure");
+      assert.deepEqual(events, [
+        "setPath:userData:/tmp/app-data/t3code-v2",
+        "requestSingleInstanceLock",
+        "exit:0",
+      ]);
+      assert.equal(createClerkBridgeMock.mock.calls.length, 0);
+    });
+  });
+
   it.effect("acquires and releases the SDK bridge with the layer", () => {
     const cleanup = vi.fn();
     const events: string[] = [];
@@ -113,10 +141,12 @@ describe("DesktopClerk", () => {
         ],
       ]);
       assert.equal(cleanup.mock.calls.length, 1);
-      // The bridge acquires Electron's single-instance lock at creation, and
-      // the lock both lives in and creates the userData directory — so the
-      // real path must be set before the bridge exists.
-      assert.deepEqual(events, ["setPath:userData:/tmp/app-data/t3code-dev", "createClerkBridge"]);
+      // Set the profile path before acquiring its lock or creating the bridge.
+      assert.deepEqual(events, [
+        "setPath:userData:/tmp/app-data/t3code-dev",
+        "requestSingleInstanceLock",
+        "createClerkBridge",
+      ]);
       storageMock.mockClear();
       createClerkBridgeMock.mockClear();
     });
